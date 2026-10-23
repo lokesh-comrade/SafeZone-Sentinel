@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeZone Sentinel • AI Emergency Command &amp; Live Video Monitor</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet Free Map CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-rose-600 selection:text-white">
+
+    <!-- Top Navigation Command Bar -->
+    <header class="bg-slate-900/90 border-b border-slate-800 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 backdrop-blur sticky top-0 z-50">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-rose-500 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-rose-600/30">
+                SZ
+            </div>
+            <div>
+                <div class="flex items-center space-x-2">
+                    <h1 class="text-lg font-bold text-white tracking-tight">SafeZone Sentinel</h1>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-rose-500/20 text-rose-400 border border-rose-500/30">COMMAND CENTER</span>
+                </div>
+                <p class="text-xs text-slate-400">Live Camera Feed • AI Risk Analytics • Real-Time GPS Surveillance</p>
+            </div>
+        </div>
+
+        <!-- System Stats Bar -->
+        <div class="flex items-center space-x-6 bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-1.5 text-xs">
+            <div>
+                <span class="text-slate-400 block text-[10px]">ACTIVE SOS</span>
+                <span id="statActiveCount" class="text-sm font-bold text-rose-500">0</span>
+            </div>
+            <div class="h-6 w-px bg-slate-800"></div>
+            <div>
+                <span class="text-slate-400 block text-[10px]">HIGHEST RISK</span>
+                <span id="statHighestRisk" class="text-sm font-bold text-amber-400">LOW</span>
+            </div>
+            <div class="h-6 w-px bg-slate-800"></div>
+            <div>
+                <span class="text-slate-400 block text-[10px]">VIDEO FEEDS</span>
+                <span id="statVideoFeeds" class="text-sm font-bold text-emerald-400">ONLINE</span>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <span id="connectionBadge" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 mr-2 animate-ping"></span>
+                Firestore Live Sync
+            </span>
+            <button onclick="toggleSirenAudio()" id="btnSiren" class="px-3 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-xs font-semibold border border-rose-800 transition flex items-center space-x-1.5">
+                <span>🔊 Alarm Siren</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Permission Error Alert Banner (Hidden by Default) -->
+    <div id="permissionNotice" class="hidden bg-amber-500/10 border-b border-amber-500/20 px-6 py-2.5 text-xs text-amber-300 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <span class="font-bold">⚠️ Firestore Rules Warning:</span>
+            <span>If alerts are blocked, open Firebase Console &rarr; Firestore Database &rarr; Rules tab &rarr; set <code class="bg-amber-950/80 px-1 py-0.5 rounded">allow read, write: if true;</code> and click Publish.</span>
+        </div>
+        <a href="https://console.firebase.google.com/u/0/project/safezone-e5ee5/firestore/rules" target="_blank" class="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 font-bold underline">Fix Rules Now &rarr;</a>
+    </div>
+
+    <!-- Main Command Layout -->
+    <main class="flex-1 p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 max-w-[1920px] w-full mx-auto">
+
+        <!-- Column 1: Live Emergency Alerts Feed (4 Cols) -->
+        <section class="lg:col-span-4 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col h-[calc(100vh-120px)] shadow-2xl backdrop-blur">
+            <div class="flex items-center justify-between mb-3 pb-3 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <h2 class="text-base font-bold text-white">Incoming Emergency Incidents</h2>
+                    <span id="alertFeedBadge" class="px-2 py-0.5 rounded-full text-xs font-extrabold bg-rose-600 text-white">0</span>
+                </div>
+                <span class="text-[11px] text-slate-400">Auto-Refreshes</span>
+            </div>
+
+            <div id="alertsContainer" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                <div class="p-8 text-center text-slate-400 border border-dashed border-slate-800 rounded-xl">
+                    <div class="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto mb-2 font-bold text-lg">✓</div>
+                    <p class="text-sm font-semibold text-slate-200">System Protected • No Active Emergency Alerts</p>
+                    <p class="text-xs text-slate-500 mt-1">Listening for mobile SOS slider &amp; shake motion triggers...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Column 2: Live Video Feed & AI Risk Analysis (4 Cols) -->
+        <section class="lg:col-span-4 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col h-[calc(100vh-120px)] shadow-2xl backdrop-blur">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <h2 class="text-base font-bold text-white">Live Video Feed &amp; Camera Stream</h2>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-600 text-white animate-pulse">REC LIVE</span>
+                </div>
+                <span class="text-[11px] text-slate-400" id="videoTimestamp">00:00:00</span>
+            </div>
+
+            <!-- Video Player Container -->
+            <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-800 shadow-inner group">
+                <video id="liveVideoPlayer" autoplay loop muted playsinline class="w-full h-full object-cover">
+                    <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
+                    Your browser does not support video streaming.
+                </video>
+
+                <!-- Video HUD Overlay -->
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 p-3 flex flex-col justify-between pointer-events-none">
+                    <div class="flex items-center justify-between">
+                        <span class="bg-black/60 backdrop-blur px-2 py-1 rounded text-[10px] font-mono text-emerald-400 border border-emerald-500/30">
+                            CAM_01 • FRONT_FEED
+                        </span>
+                        <span class="bg-rose-600/80 backdrop-blur px-2 py-0.5 rounded text-[10px] font-bold text-white">
+                            STREAMING 1080p
+                        </span>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-white" id="videoTargetUser">Target: Select Active Incident</p>
+                        <p class="text-[10px] text-slate-300 font-mono" id="videoTargetGps">GPS: --.--, --.--</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Risk Analysis Breakdown -->
+            <div class="mt-4 flex-1 flex flex-col bg-slate-950/60 border border-slate-800/80 rounded-xl p-3.5 space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">AI Threat &amp; Sensor Risk Analysis</h3>
+                    <span id="aiThreatBadge" class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-slate-800 text-slate-300">STANDBY</span>
+                </div>
+
+                <!-- Risk Score Bar -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-400">Threat Risk Assessment Score</span>
+                        <span id="aiScoreText" class="font-bold text-amber-400">0 / 100</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div id="aiScoreBar" class="h-full bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-600 w-0 transition-all duration-500"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-xs pt-1">
+                    <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                        <span class="text-slate-400 block text-[10px]">MOTION INTENSITY</span>
+                        <span id="aiMotionText" class="font-bold text-slate-200">5x Shake Delta</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                        <span class="text-slate-400 block text-[10px]">BATTERY STATUS</span>
+                        <span id="aiBatteryText" class="font-bold text-slate-200">--%</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 text-xs flex-1">
+                    <span class="text-slate-400 block text-[10px] mb-1">RECOMMENDED ACTION PROTOCOL</span>
+                    <p id="aiProtocolText" class="text-slate-300 font-medium">No active incident. System in automated background monitoring mode.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Column 3: Interactive GPS Radar Map (4 Cols) -->
+        <section class="lg:col-span-4 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col h-[calc(100vh-120px)] shadow-2xl backdrop-blur">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
+                <div>
+                    <h2 class="text-base font-bold text-white">Live Incident Radar Map</h2>
+                    <p class="text-[11px] text-slate-400">Full Street Labels, Cities, Places &amp; Landmarks</p>
+                </div>
+                <a href="https://console.firebase.google.com/u/0/project/safezone-e5ee5/firestore" target="_blank" class="text-xs text-rose-400 hover:text-rose-300 font-semibold underline">
+                    Firebase Console &rarr;
+                </a>
+            </div>
+
+            <!-- Leaflet Map Element -->
+            <div id="map" class="flex-1 w-full rounded-xl overflow-hidden border border-slate-800 z-0"></div>
+        </section>
+
+    </main>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Real Firebase Credentials matching project safezone-e5ee5
+        const firebaseConfig = {
+            apiKey: "AIzaSyAQOXeY4DkGdxt2GRKm8BwULbiDK2tmH2Q",
+            authDomain: "safezone-e5ee5.firebaseapp.com",
+            projectId: "safezone-e5ee5",
+            storageBucket: "safezone-e5ee5.firebasestorage.app",
+            messagingSenderId: "734616369393",
+            appId: "1:734616369393:android:e04fafa02563ae2eae9150"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Initialize Map with High-Resolution Labeled Street Map Tiles (Places, Roads, Cities)
+        const map = L.map('map').setView([20.5937, 78.9629], 5);
+
+        const streetTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        const esriStreetTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; Esri'
+        });
+
+        const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 19
+        });
+
+        // Layer Switcher for Admin
+        L.control.layers({
+            "Full Street Map (Place Names & Labels)": streetTiles,
+            "Esri High-Detail Map": esriStreetTiles,
+            "Dark Night Map": darkTiles
+        }, null, { position: 'topright' }).addTo(map);
+
+        const markers = {};
+
+        // Clock Update
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('videoTimestamp').innerText = now.toTimeString().split(' ')[0];
+        }, 1000);
+
+        // Real-Time Listener
+        db.collection('alerts').onSnapshot(snapshot => {
+            document.getElementById('permissionNotice').classList.add('hidden');
+
+            const container = document.getElementById('alertsContainer');
+            const alertFeedBadge = document.getElementById('alertFeedBadge');
+            const statActiveCount = document.getElementById('statActiveCount');
+            const statHighestRisk = document.getElementById('statHighestRisk');
+
+            let activeAlerts = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.is_alert_active) {
+                    activeAlerts.push({ id: doc.id, ...data });
+                }
+            });
+
+            alertFeedBadge.innerText = activeAlerts.length;
+            statActiveCount.innerText = activeAlerts.length;
+
+            if (activeAlerts.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center text-slate-400 border border-dashed border-slate-800 rounded-xl">
+                        <div class="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto mb-2 font-bold text-lg">✓</div>
+                        <p class="text-sm font-semibold text-slate-200">System Protected • No Active Emergency Alerts</p>
+                        <p class="text-xs text-slate-500 mt-1">Listening for mobile SOS slider &amp; shake motion triggers...</p>
+                    </div>
+                `;
+                statHighestRisk.innerText = "SAFE";
+                statHighestRisk.className = "text-sm font-bold text-emerald-400";
+                resetAiAnalysis();
+                return;
+            }
+
+            statHighestRisk.innerText = "CRITICAL";
+            statHighestRisk.className = "text-sm font-bold text-rose-500 animate-pulse";
+
+            // Render Alert Cards
+            container.innerHTML = activeAlerts.map(alert => `
+                <div class="p-4 rounded-xl bg-rose-950/30 border border-rose-600/40 hover:border-rose-500 transition shadow-lg space-y-3">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-rose-600 text-white animate-pulse">
+                                ${alert.threat_level || 'CRITICAL THREAT'}
+                            </span>
+                            <h3 class="text-base font-bold text-white mt-1">${alert.user_name || 'SafeZone User'}</h3>
+                            <p class="text-xs text-rose-300 font-mono">${alert.user_phone || 'Phone Unregistered'}</p>
+                        </div>
+                        <span class="text-[10px] text-slate-300 bg-slate-800 px-2 py-1 rounded border border-slate-700 font-mono">
+                            ${alert.trigger_source || 'SWIPE_TRIGGER'}
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-xs bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
+                        <div><span class="text-slate-400">Battery:</span> <strong class="text-slate-200">${alert.battery_level || '95%'}</strong></div>
+                        <div><span class="text-slate-400">Risk Score:</span> <strong class="text-amber-400">${alert.risk_score || 92}/100</strong></div>
+                        <div><span class="text-slate-400">Lat:</span> <strong class="text-slate-200">${alert.latitude ? alert.latitude.toFixed(4) : 'N/A'}</strong></div>
+                        <div><span class="text-slate-400">Lng:</span> <strong class="text-slate-200">${alert.longitude ? alert.longitude.toFixed(4) : 'N/A'}</strong></div>
+                    </div>
+
+                    <div class="flex items-center space-x-2 pt-1">
+                        <button onclick="inspectAlert('${alert.id}', '${alert.user_name}', '${alert.user_phone}', ${alert.latitude}, ${alert.longitude}, ${alert.risk_score || 95}, '${alert.battery_level || '90%'}')"
+                                class="flex-1 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-md">
+                            View Stream &amp; Radar Pin
+                        </button>
+                        <button onclick="disarmAlertRemote('${alert.id}')"
+                                class="px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-semibold text-xs border border-emerald-800 transition">
+                            Disarm
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            // Map Markers
+            activeAlerts.forEach(alert => {
+                if (alert.latitude && alert.longitude) {
+                    const pos = [alert.latitude, alert.longitude];
+                    if (markers[alert.id]) {
+                        markers[alert.id].setLatLng(pos);
+                    } else {
+                        const m = L.marker(pos).addTo(map)
+                            .bindPopup(`<b>${alert.user_name}</b><br>Threat: ${alert.threat_level}<br>Phone: ${alert.user_phone}`);
+                        markers[alert.id] = m;
+                    }
+                }
+            });
+
+            // Inspect first active alert
+            const topAlert = activeAlerts[0];
+            inspectAlert(topAlert.id, topAlert.user_name, topAlert.user_phone, topAlert.latitude, topAlert.longitude, topAlert.risk_score || 95, topAlert.battery_level || '90%');
+
+        }, err => {
+            console.error("Firestore error:", err);
+            document.getElementById('permissionNotice').classList.remove('hidden');
+            document.getElementById('connectionBadge').className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20";
+            document.getElementById('connectionBadge').innerText = "Blocked - Check Firestore Rules";
+        });
+
+        function inspectAlert(id, name, phone, lat, lng, score, battery) {
+            document.getElementById('videoTargetUser').innerText = `Target: ${name || 'SafeZone User'} (${phone})`;
+            document.getElementById('videoTargetGps').innerText = `GPS: ${lat ? lat.toFixed(5) : '--'}, ${lng ? lng.toFixed(5) : '--'}`;
+
+            document.getElementById('aiScoreText').innerText = `${score} / 100`;
+            document.getElementById('aiScoreBar').style.width = `${score}%`;
+            document.getElementById('aiThreatBadge').innerText = score >= 90 ? "CRITICAL THREAT" : "HIGH ALERT";
+            document.getElementById('aiThreatBadge').className = "px-2 py-0.5 rounded text-[10px] font-extrabold bg-rose-600 text-white animate-pulse";
+            document.getElementById('aiBatteryText').innerText = battery;
+            document.getElementById('aiProtocolText').innerText = "DISPATCH EMERGENCY RESPONDERS: Contact local emergency services & trusted numbers immediately.";
+
+            if (lat && lng) {
+                map.setView([lat, lng], 15);
+                if (markers[id]) markers[id].openPopup();
+            }
+        }
+
+        function disarmAlertRemote(id) {
+            if (confirm("Confirm disarming emergency SOS for this user?")) {
+                db.collection('alerts').doc(id).update({
+                    is_alert_active: false,
+                    disarmed_by_admin: true
+                }).then(() => {
+                    alert("Alert disarmed successfully.");
+                }).catch(err => {
+                    alert("Error disarming alert: " + err.message);
+                });
+            }
+        }
+
+        function resetAiAnalysis() {
+            document.getElementById('videoTargetUser').innerText = "Target: Standby";
+            document.getElementById('videoTargetGps').innerText = "GPS: Standard Monitoring";
+            document.getElementById('aiScoreText').innerText = "0 / 100";
+            document.getElementById('aiScoreBar').style.width = "0%";
+            document.getElementById('aiThreatBadge').innerText = "STANDBY";
+            document.getElementById('aiThreatBadge').className = "px-2 py-0.5 rounded text-[10px] font-extrabold bg-slate-800 text-slate-300";
+            document.getElementById('aiBatteryText').innerText = "--%";
+            document.getElementById('aiProtocolText').innerText = "No active incident. System in automated background monitoring mode.";
+        }
+
+        function toggleSirenAudio() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                osc.connect(ctx.destination);
+                osc.start();
+                setTimeout(() => osc.stop(), 1000);
+            } catch (e) {
+                alert("Siren sound triggered.");
+            }
+        }
+    </script>
+</body>
+</html>

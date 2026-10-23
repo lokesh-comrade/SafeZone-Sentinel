@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.SafeZone" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary_rose</item>
+        <item name="colorPrimaryVariant">@color/primary_rose_dark</item>
+        <item name="colorOnPrimary">@color/card_white</item>
+        <item name="colorSecondary">@color/accent_pink</item>
+        <item name="android:statusBarColor">@color/bg_soft_pink</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@color/bg_soft_pink</item>
+    </style>
+</resources>
