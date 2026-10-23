@@ -12,6 +12,8 @@
     <!-- Firebase Compat SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+    <!-- Agora WebRTC SDK for Real-Time Fluid Live Streaming -->
+    <script src="https://download.agora.io/sdk/web/AgoraRTC_N-4.20.0.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-rose-600 selection:text-white">
 
@@ -26,7 +28,7 @@
                     <h1 class="text-lg font-bold text-white tracking-tight">SafeZone Sentinel</h1>
                     <span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-rose-500/20 text-rose-400 border border-rose-500/30">COMMAND CENTER</span>
                 </div>
-                <p class="text-xs text-slate-400">Mobile Rear Camera Feed • AI Risk Analytics • Real-Time GPS Surveillance</p>
+                <p class="text-xs text-slate-400">WebRTC Live Stream • AI Risk Analytics • GPS Geofence Surveillance</p>
             </div>
         </div>
 
@@ -43,8 +45,8 @@
             </div>
             <div class="h-6 w-px bg-slate-800"></div>
             <div>
-                <span class="text-slate-400 block text-[10px]">REAR CAM FOOTAGE</span>
-                <span id="statVideoFeeds" class="text-sm font-bold text-emerald-400">READY</span>
+                <span class="text-slate-400 block text-[10px]">WEBRTC FOOTAGE</span>
+                <span id="statVideoFeeds" class="text-sm font-bold text-emerald-400">ONLINE</span>
             </div>
         </div>
 
@@ -93,33 +95,41 @@
             </div>
         </section>
 
-        <!-- Column 2: Live Mobile Rear Camera Evidence & AI Risk Analysis (4 Cols) -->
+        <!-- Column 2: WebRTC Police Live Video Evidence Feed & AI Risk Analysis (4 Cols) -->
         <section class="lg:col-span-4 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col h-[calc(100vh-120px)] shadow-2xl backdrop-blur">
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
                 <div class="flex items-center space-x-2">
-                    <h2 class="text-base font-bold text-white">Mobile Rear Camera Live Evidence</h2>
-                    <span id="videoStatusBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-600 text-white animate-pulse">REC REAR CAM</span>
+                    <h2 class="text-base font-bold text-white">WebRTC Mobile Rear Cam Live Stream</h2>
+                    <span id="videoStatusBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-600 text-white animate-pulse">WEBRTC LIVE</span>
                 </div>
                 <span class="text-[11px] text-slate-400" id="videoTimestamp">00:00:00</span>
             </div>
 
-            <!-- Video Player & Image Stream Canvas Container with Generous Height -->
-            <div class="relative w-full h-[240px] min-h-[240px] bg-black rounded-xl overflow-hidden border border-slate-800 shadow-inner group flex items-center justify-center my-1">
+            <!-- WebRTC Police Camera Feed Div Container -->
+            <div class="relative w-full h-[240px] min-h-[240px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-inner group flex items-center justify-center my-1">
 
-                <!-- Live Mobile Rear Camera Image Stream Frame -->
-                <img id="mobileLiveFrame" src="" class="w-full h-full object-cover hidden" alt="Mobile Rear Camera Stream" />
+                <!-- WebRTC Police Camera Feed Container (Plays user.videoTrack) -->
+                <div id="police-camera-feed" class="w-full h-full object-cover relative flex items-center justify-center">
 
-                <!-- Fallback Stream Video Player -->
-                <video id="liveVideoPlayer" autoplay loop muted playsinline controls crossorigin="anonymous" class="w-full h-full object-cover">
-                    <source id="videoSource" src="https://vjs.zencdn.net/v/oceans.mp4" type="video/mp4">
-                    Your browser does not support video streaming.
-                </video>
+                    <!-- Live Mobile Rear Camera Frame Canvas / Image -->
+                    <img id="mobileLiveFrame" src="" class="w-full h-full object-cover hidden" alt="Mobile Rear Camera Stream" />
+
+                    <!-- Connecting Radar Placeholder -->
+                    <div id="camConnectingState" class="flex flex-col items-center justify-center p-6 text-center space-y-2 text-slate-400">
+                        <div class="w-12 h-12 rounded-full border-2 border-rose-500/40 border-t-rose-500 animate-spin flex items-center justify-center">
+                            <div class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></div>
+                        </div>
+                        <p class="text-xs font-bold text-slate-300">Connecting WebRTC &amp; Mobile Rear Camera Feed...</p>
+                        <p class="text-[11px] text-slate-500">WebRTC video stream plays automatically on channel join.</p>
+                    </div>
+
+                </div>
 
                 <!-- Video HUD Overlay -->
-                <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/50 p-3 flex flex-col justify-between pointer-events-none">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/50 p-3 flex flex-col justify-between pointer-events-none z-10">
                     <div class="flex items-center justify-between">
                         <span id="camTitleTag" class="bg-black/80 backdrop-blur px-2 py-1 rounded text-[10px] font-mono text-emerald-400 border border-emerald-500/30">
-                            MOBILE REAR CAM • LIVE FOOTAGE STREAM
+                            WEBRTC REAR CAM • LIVE STREAM
                         </span>
                         <span class="bg-rose-600/90 backdrop-blur px-2 py-0.5 rounded text-[10px] font-bold text-white">
                             LIVE PHONE STREAM
@@ -150,7 +160,7 @@
                     </div>
                 </div>
 
-                <!-- Dynamic 4-Factor Weighted Breakdown Matrix without Raw Formulas -->
+                <!-- Dynamic 4-Factor Weighted Breakdown Matrix -->
                 <div class="grid grid-cols-2 gap-2 text-[11px] pt-1">
                     <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
                         <span class="text-slate-400 block text-[10px]">1. TRIGGER SEVERITY</span>
@@ -230,6 +240,33 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        // WebRTC Agora Client Initialization
+        const AGORA_APP_ID = "e04fafa02563ae2eae9150";
+        let rtcClient = null;
+
+        async function connectAgoraWebRtcStream(victimPhoneNumber) {
+            if (typeof AgoraRTC !== 'undefined') {
+                try {
+                    if (!rtcClient) {
+                        rtcClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+                    }
+
+                    rtcClient.on("user-published", async (user, mediaType) => {
+                        await rtcClient.subscribe(user, mediaType);
+                        if (mediaType === "video") {
+                            document.getElementById('camConnectingState').classList.add('hidden');
+                            user.videoTrack.play("police-camera-feed");
+                            document.getElementById('camTitleTag').innerText = "WEBRTC REAL-TIME LIVE STREAM ACTIVE";
+                        }
+                    });
+
+                    await rtcClient.join(AGORA_APP_ID, victimPhoneNumber, null, null);
+                } catch (e) {
+                    console.log("WebRTC Channel Join:", e);
+                }
+            }
+        }
+
         // Initialize Leaflet Map
         const map = L.map('map', {
             center: [20.5937, 78.9629],
@@ -268,6 +305,7 @@
         });
 
         const markers = {};
+        let activeDocUnsubscribe = null;
 
         // Clock Update
         setInterval(() => {
@@ -275,7 +313,7 @@
             document.getElementById('videoTimestamp').innerText = now.toTimeString().split(' ')[0];
         }, 1000);
 
-        // Real-Time Firestore Listener
+        // Real-Time Firestore Listener for Incidents Feed
         db.collection('alerts').onSnapshot(snapshot => {
             document.getElementById('permissionNotice').classList.add('hidden');
 
@@ -378,6 +416,27 @@
             document.getElementById('connectionBadge').innerText = "Blocked - Check Firestore Rules";
         });
 
+        // Dedicated Document Listener for Real-Time Continuous Live Video Frame Streaming
+        function subscribeToTargetLiveCameraStream(docId) {
+            if (activeDocUnsubscribe) {
+                activeDocUnsubscribe();
+            }
+
+            activeDocUnsubscribe = db.collection('alerts').doc(docId).onSnapshot(doc => {
+                if (doc.exists && doc.data().is_alert_active) {
+                    const data = doc.data();
+                    if (data.live_camera_frame && data.live_camera_frame.length > 50) {
+                        const imgFrame = document.getElementById('mobileLiveFrame');
+                        const camConnectingState = document.getElementById('camConnectingState');
+                        imgFrame.src = data.live_camera_frame;
+                        imgFrame.classList.remove('hidden');
+                        camConnectingState.classList.add('hidden');
+                        document.getElementById('camTitleTag').innerText = "MOBILE REAR CAM • LIVE STREAM ACTIVE";
+                    }
+                }
+            });
+        }
+
         // Address Resolver via Reverse Geocoding API
         function resolvePhysicalAddress(lat, lng) {
             document.getElementById('targetAddressText').innerText = "Resolving street name & physical address...";
@@ -411,20 +470,9 @@
             document.getElementById('targetAccuracyText').innerText = `Accuracy: ±${alert.accuracy ? alert.accuracy.toFixed(1) : '3.5'}m`;
             document.getElementById('targetGmapsLink').href = `https://maps.google.com/?q=${lat},${lng}`;
 
-            // 1. DYNAMIC MOBILE REAR CAMERA LIVE FRAME DISPLAY
-            const imgFrame = document.getElementById('mobileLiveFrame');
-            const videoPlayer = document.getElementById('liveVideoPlayer');
-
-            if (alert.live_camera_frame && alert.live_camera_frame.length > 50) {
-                imgFrame.src = alert.live_camera_frame;
-                imgFrame.classList.remove('hidden');
-                videoPlayer.classList.add('hidden');
-                document.getElementById('camTitleTag').innerText = "MOBILE REAR CAM • LIVE FOOTAGE STREAM";
-            } else {
-                imgFrame.classList.add('hidden');
-                videoPlayer.classList.remove('hidden');
-                document.getElementById('camTitleTag').innerText = "MOBILE CAMERA • STREAMING ACTIVE";
-            }
+            // 1. SUBSCRIBE TO REAL-TIME CONTINUOUS LIVE CAMERA FRAME STREAM & WEBRTC
+            subscribeToTargetLiveCameraStream(id);
+            connectAgoraWebRtcStream(phone);
 
             // 2. DYNAMIC HEURISTIC AI THREAT RISK SCORE BREAKDOWN
             const wTrigger = alert.w_trigger !== undefined ? alert.w_trigger : (alert.trigger_source === 'SHAKE_SOS_TRIGGER' ? 45 : 35);
@@ -473,6 +521,11 @@
         }
 
         function resetAiAnalysis() {
+            if (activeDocUnsubscribe) {
+                activeDocUnsubscribe();
+                activeDocUnsubscribe = null;
+            }
+
             document.getElementById('videoTargetUser').innerText = "Target: Standby";
             document.getElementById('videoTargetGps').innerText = "GPS: Standard Monitoring";
             document.getElementById('targetGpsText').innerText = "GPS: Standby";
@@ -491,6 +544,8 @@
             const imgFrame = document.getElementById('mobileLiveFrame');
             imgFrame.classList.add('hidden');
             imgFrame.src = "";
+            document.getElementById('camConnectingState').classList.remove('hidden');
+            document.getElementById('camTitleTag').innerText = "WEBRTC REAR CAM • STREAM CONNECTING";
         }
 
         function toggleSirenAudio() {

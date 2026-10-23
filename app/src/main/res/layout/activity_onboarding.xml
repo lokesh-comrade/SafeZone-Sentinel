@@ -169,6 +169,7 @@
 
             </LinearLayout>
 
+            <!-- STEP 3: Safe Zones with Precise GPS Pinning -->
             <LinearLayout
                 android:id="@+id/llStep3"
                 android:layout_width="match_parent"
@@ -182,7 +183,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Configure Safe Zones"
+                    android:text="Configure Safe Zone Coordinates"
                     android:textColor="@color/text_dark"
                     android:textSize="20sp"
                     android:textStyle="bold" />
@@ -192,52 +193,86 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:layout_marginBottom="16dp"
-                    android:text="Define safe perimeters for enhanced contextual monitoring."
+                    android:text="Pin exact GPS coordinates for your Home &amp; Campus safe zones to enable high-accuracy geofencing."
                     android:textColor="@color/text_muted"
                     android:textSize="14sp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Home Safe Perimeter"
-                    android:textColor="@color/text_dark"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Home Safe Perimeter"
+                        android:textColor="@color/text_dark"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnPinHomeGps"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📍 Pin Current GPS"
+                        android:textColor="@color/primary_rose"
+                        android:textSize="12sp" />
+                </LinearLayout>
 
                 <EditText
                     android:id="@+id/etHomeZone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
+                    android:layout_marginTop="4dp"
                     android:layout_marginBottom="16dp"
                     android:background="@drawable/bg_slider_track"
-                    android:hint="Home Address / Radius (e.g. 500m)"
+                    android:hint="Home GPS Coordinates (Lat, Lng)"
                     android:inputType="text"
                     android:padding="14dp"
                     android:textColor="@color/text_dark"
                     android:textColorHint="@color/text_muted"
-                    android:textSize="15sp" />
+                    android:textSize="14sp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Campus / Workplace Safe Perimeter"
-                    android:textColor="@color/text_dark"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Campus / Workplace Safe Perimeter"
+                        android:textColor="@color/text_dark"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnPinCampusGps"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📍 Pin Current GPS"
+                        android:textColor="@color/primary_rose"
+                        android:textSize="12sp" />
+                </LinearLayout>
 
                 <EditText
                     android:id="@+id/etCampusZone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
+                    android:layout_marginTop="4dp"
                     android:background="@drawable/bg_slider_track"
-                    android:hint="Campus Address / Radius (e.g. 1000m)"
+                    android:hint="Campus GPS Coordinates (Lat, Lng)"
                     android:inputType="text"
                     android:padding="14dp"
                     android:textColor="@color/text_dark"
                     android:textColorHint="@color/text_muted"
-                    android:textSize="15sp" />
+                    android:textSize="14sp" />
 
             </LinearLayout>
 

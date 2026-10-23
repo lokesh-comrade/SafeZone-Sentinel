@@ -1,7 +1,10 @@
 package com.safezone.sentinel;
 
+import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -16,13 +19,17 @@ import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class OnboardingActivity extends AppCompatActivity {
@@ -47,8 +54,14 @@ public class OnboardingActivity extends AppCompatActivity {
 
     private EditText etHomeZone;
     private EditText etCampusZone;
+    private Button btnPinHomeGps;
+    private Button btnPinCampusGps;
 
     private Button btnNextStep;
+
+    private FusedLocationProviderClient fusedLocationClient;
+    private double homeLat = 0.0, homeLng = 0.0;
+    private double campusLat = 0.0, campusLng = 0.0;
 
     private final List<View> contactViewsList = new ArrayList<>();
 
@@ -56,6 +69,8 @@ public class OnboardingActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_onboarding);
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         initViews();
         setupStep1();
@@ -82,6 +97,8 @@ public class OnboardingActivity extends AppCompatActivity {
 
         etHomeZone = findViewById(R.id.etHomeZone);
         etCampusZone = findViewById(R.id.etCampusZone);
+        btnPinHomeGps = findViewById(R.id.btnPinHomeGps);
+        btnPinCampusGps = findViewById(R.id.btnPinCampusGps);
 
         btnNextStep = findViewById(R.id.btnNextStep);
     }
@@ -143,6 +160,9 @@ public class OnboardingActivity extends AppCompatActivity {
     private void setupListeners() {
         btnAddContact.setOnClickListener(v -> addContactSlot("", ""));
 
+        btnPinHomeGps.setOnClickListener(v -> pinCurrentLocation(true));
+        btnPinCampusGps.setOnClickListener(v -> pinCurrentLocation(false));
+
         btnNextStep.setOnClickListener(v -> {
             if (currentStep == 1) {
                 if (validateStep1()) {
@@ -158,6 +178,32 @@ public class OnboardingActivity extends AppCompatActivity {
                 if (validateStep3()) {
                     completeOnboarding();
                 }
+            }
+        });
+    }
+
+    private void pinCurrentLocation(boolean isHome) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1001);
+            return;
+        }
+
+        fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
+            if (location != null) {
+                String gpsStr = String.format(Locale.getDefault(), "Lat: %.5f, Lng: %.5f", location.getLatitude(), location.getLongitude());
+                if (isHome) {
+                    homeLat = location.getLatitude();
+                    homeLng = location.getLongitude();
+                    etHomeZone.setText(gpsStr);
+                    Toast.makeText(this, "Home GPS Pinned Successfully!", Toast.LENGTH_SHORT).show();
+                } else {
+                    campusLat = location.getLatitude();
+                    campusLng = location.getLongitude();
+                    etCampusZone.setText(gpsStr);
+                    Toast.makeText(this, "Campus GPS Pinned Successfully!", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Toast.makeText(this, "Unable to fix GPS. Please ensure Location is enabled.", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -284,6 +330,10 @@ public class OnboardingActivity extends AppCompatActivity {
         editor.putString("user_phone", userPhone);
         editor.putString("home_zone", homeZone);
         editor.putString("campus_zone", campusZone);
+        editor.putFloat("home_lat", (float) homeLat);
+        editor.putFloat("home_lng", (float) homeLng);
+        editor.putFloat("campus_lat", (float) campusLat);
+        editor.putFloat("campus_lng", (float) campusLng);
         editor.putInt("contacts_count", contactViewsList.size());
 
         List<Map<String, String>> contactsListForFirestore = new ArrayList<>();
@@ -315,6 +365,10 @@ public class OnboardingActivity extends AppCompatActivity {
             userPayload.put("user_phone", userPhone);
             userPayload.put("home_zone", homeZone);
             userPayload.put("campus_zone", campusZone);
+            userPayload.put("home_lat", homeLat);
+            userPayload.put("home_lng", homeLng);
+            userPayload.put("campus_lat", campusLat);
+            userPayload.put("campus_lng", campusLng);
             userPayload.put("contacts_count", contactViewsList.size());
             userPayload.put("contacts", contactsListForFirestore);
             userPayload.put("updated_at", FieldValue.serverTimestamp());
