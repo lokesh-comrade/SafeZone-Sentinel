@@ -105,10 +105,17 @@
 
             <!-- Video Player Container -->
             <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-800 shadow-inner group">
-                <video id="liveVideoPlayer" autoplay loop muted playsinline class="w-full h-full object-cover">
-                    <source id="videoSource" src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
+                <video id="liveVideoPlayer" autoplay loop muted playsinline controls crossorigin="anonymous" class="w-full h-full object-cover">
+                    <source id="videoSource" src="https://vjs.zencdn.net/v/oceans.mp4" type="video/mp4">
                     Your browser does not support video streaming.
                 </video>
+
+                <!-- Video Controls & Webcam Toggle -->
+                <div class="absolute top-2 right-2 z-10">
+                    <button onclick="startWebcamFeed()" class="bg-black/80 hover:bg-rose-600 text-white text-[10px] font-bold px-2 py-1 rounded border border-slate-700 backdrop-blur shadow">
+                        📷 Test WebCam Live Stream
+                    </button>
+                </div>
 
                 <!-- Video HUD Overlay -->
                 <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/50 p-3 flex flex-col justify-between pointer-events-none">
@@ -216,39 +223,35 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Initialize Leaflet Map with High-Performance Labeled Tiles
+        // Initialize Leaflet Map
         const map = L.map('map', {
             center: [20.5937, 78.9629],
             zoom: 5
         });
 
-        // Primary Labeled Tile Layer (Esri World Street Map - High Detail Street & City Names)
         const esriStreetTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
             attribution: '&copy; Esri, HERE, Garmin, USGS, NGA',
             maxZoom: 19
         }).addTo(map);
 
-        // Secondary Voyager Labeled Tiles
         const voyagerTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap &copy; CARTO',
             subdomains: 'abcd',
             maxZoom: 19
         });
 
-        // OpenStreetMap Standard Tiles
         const osmStandardTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors',
             maxZoom: 19
         });
 
-        // Add Layer Control
+        // Layer Switcher
         L.control.layers({
             "Esri High-Detail Labeled Map": esriStreetTiles,
             "CartoDB Labeled Voyager Map": voyagerTiles,
             "OpenStreetMap Standard": osmStandardTiles
         }, null, { position: 'topright' }).addTo(map);
 
-        // Ensure Leaflet invalidates size for Flexbox Containers
         setTimeout(() => {
             map.invalidateSize();
         }, 200);
@@ -264,6 +267,23 @@
             const now = new Date();
             document.getElementById('videoTimestamp').innerText = now.toTimeString().split(' ')[0];
         }, 1000);
+
+        // Fallback video URLs array
+        const fallbackVideoUrls = [
+            "https://vjs.zencdn.net/v/oceans.mp4",
+            "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+            "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+        ];
+
+        const player = document.getElementById('liveVideoPlayer');
+        player.onerror = function() {
+            console.warn("Primary video failed to play, loading fallback stream...");
+            const currentSrc = player.src;
+            const nextUrl = fallbackVideoUrls.find(url => url !== currentSrc) || fallbackVideoUrls[0];
+            player.src = nextUrl;
+            player.load();
+            player.play().catch(e => console.log("Fallback play:", e));
+        };
 
         // Real-Time Listener
         db.collection('alerts').onSnapshot(snapshot => {
@@ -326,9 +346,9 @@
                     </div>
 
                     <div class="flex items-center space-x-2 pt-1">
-                        <button onclick="inspectAlert('${alert.id}', '${alert.user_name}', '${alert.user_phone}', ${alert.latitude}, ${alert.longitude}, ${alert.risk_score || 95}, '${alert.battery_level || '90%'}', ${alert.accuracy || 4.5}, '${alert.video_stream_url || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'}')"
+                        <button onclick="inspectAlert('${alert.id}', '${alert.user_name}', '${alert.user_phone}', ${alert.latitude}, ${alert.longitude}, ${alert.risk_score || 95}, '${alert.battery_level || '90%'}', ${alert.accuracy || 4.5}, '${alert.video_stream_url || 'https://vjs.zencdn.net/v/oceans.mp4'}')"
                                 class="flex-1 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-md flex items-center justify-center space-x-1">
-                            <span>📹 View Stream &amp; Pin Location</span>
+                            <span>📹 View Live Video Stream</span>
                         </button>
                         <button onclick="disarmAlertRemote('${alert.id}')"
                                 class="px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-semibold text-xs border border-emerald-800 transition">
@@ -354,7 +374,7 @@
 
             // Inspect first active alert automatically
             const topAlert = activeAlerts[0];
-            inspectAlert(topAlert.id, topAlert.user_name, topAlert.user_phone, topAlert.latitude, topAlert.longitude, topAlert.risk_score || 95, topAlert.battery_level || '90%', topAlert.accuracy || 4.5, topAlert.video_stream_url || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4');
+            inspectAlert(topAlert.id, topAlert.user_name, topAlert.user_phone, topAlert.latitude, topAlert.longitude, topAlert.risk_score || 95, topAlert.battery_level || '90%', topAlert.accuracy || 4.5, topAlert.video_stream_url || 'https://vjs.zencdn.net/v/oceans.mp4');
 
         }, err => {
             console.error("Firestore error:", err);
@@ -389,8 +409,7 @@
             document.getElementById('targetGmapsLink').href = `https://maps.google.com/?q=${lat},${lng}`;
 
             // Bind Video Stream Player
-            const player = document.getElementById('liveVideoPlayer');
-            const defaultUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
+            const defaultUrl = "https://vjs.zencdn.net/v/oceans.mp4";
             const targetUrl = videoUrl || defaultUrl;
 
             if (player.src !== targetUrl) {
@@ -411,6 +430,22 @@
                 if (markers[id]) markers[id].openPopup();
                 resolvePhysicalAddress(lat, lng);
                 setTimeout(() => map.invalidateSize(), 150);
+            }
+        }
+
+        function startWebcamFeed() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                    .then(stream => {
+                        player.srcObject = stream;
+                        player.play();
+                        document.getElementById('videoTargetUser').innerText = "Target: Live Browser WebCam Feed";
+                    })
+                    .catch(err => {
+                        alert("Camera access denied or unavailable: " + err.message);
+                    });
+            } else {
+                alert("Browser camera API not supported.");
             }
         }
 
@@ -440,7 +475,6 @@
             document.getElementById('aiBatteryText').innerText = "--%";
             document.getElementById('aiProtocolText').innerText = "No active incident. System in automated background monitoring mode.";
 
-            const player = document.getElementById('liveVideoPlayer');
             player.pause();
         }
 

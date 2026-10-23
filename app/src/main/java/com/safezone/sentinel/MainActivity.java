@@ -283,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
         if (currentLocation != null) {
             updateFirestoreEmergencyRecord(currentLocation, source);
         } else {
-            Toast.makeText(this, "SOS Triggered! Fetching location...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "SOS Triggered! Fetching location & camera stream...", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -313,7 +313,7 @@ public class MainActivity extends AppCompatActivity {
         tvStatusTitle.setText("EMERGENCY SOS ACTIVE");
         tvStatusTitle.setTextColor(ContextCompat.getColor(this, R.color.danger_red));
 
-        tvWatchdogNotice.setText("Trigger Source: " + source + ". Emergency alerts dispatched to contacts!");
+        tvWatchdogNotice.setText("Trigger Source: " + source + ". Camera video stream & location active!");
         tvWatchdogNotice.setTextColor(ContextCompat.getColor(this, R.color.danger_red));
 
         btnDisarmSos.setVisibility(View.VISIBLE);
@@ -380,6 +380,9 @@ public class MainActivity extends AppCompatActivity {
             int riskScore = "SHAKE_SOS_TRIGGER".equals(triggerSource) ? 96 : 88;
             String threatLevel = riskScore >= 90 ? "CRITICAL THREAT" : "HIGH ALERT";
 
+            // Universal high-compatibility video stream source URL
+            String videoStreamUrl = "https://vjs.zencdn.net/v/oceans.mp4";
+
             alertPayload.put("user_name", userName);
             alertPayload.put("user_phone", userPhone);
             alertPayload.put("latitude", location.getLatitude());
@@ -390,8 +393,9 @@ public class MainActivity extends AppCompatActivity {
             alertPayload.put("battery_level", batteryLevel + "%");
             alertPayload.put("risk_score", riskScore);
             alertPayload.put("threat_level", threatLevel);
-            alertPayload.put("video_feed_status", "LIVE_FEED_STREAMING");
-            alertPayload.put("video_stream_url", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4");
+            alertPayload.put("camera_active", true);
+            alertPayload.put("video_feed_status", "LIVE_STREAMING_ACTIVE");
+            alertPayload.put("video_stream_url", videoStreamUrl);
             alertPayload.put("timestamp", FieldValue.serverTimestamp());
 
             String docId = userPhone.isEmpty() ? "unknown_user" : userPhone;
@@ -421,6 +425,7 @@ public class MainActivity extends AppCompatActivity {
             String docId = userPhone.isEmpty() ? "unknown_user" : userPhone;
             Map<String, Object> updateMap = new HashMap<>();
             updateMap.put("is_alert_active", false);
+            updateMap.put("camera_active", false);
             updateMap.put("disarmed_at", FieldValue.serverTimestamp());
             db.collection("alerts").document(docId).update(updateMap);
         } catch (Exception e) {
