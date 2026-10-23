@@ -160,16 +160,36 @@
             </div>
         </section>
 
-        <!-- Column 3: Interactive GPS Radar Map (4 Cols) -->
+        <!-- Column 3: Live Labeled GPS Radar Map & Exact Location Resolver (4 Cols) -->
         <section class="lg:col-span-4 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col h-[calc(100vh-120px)] shadow-2xl backdrop-blur">
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
                 <div>
-                    <h2 class="text-base font-bold text-white">Live Incident Radar Map</h2>
+                    <h2 class="text-base font-bold text-white">Live Incident Location &amp; Place Names</h2>
                     <p class="text-[11px] text-slate-400">Full Street Labels, Cities, Places &amp; Landmarks</p>
                 </div>
                 <a href="https://console.firebase.google.com/u/0/project/safezone-e5ee5/firestore" target="_blank" class="text-xs text-rose-400 hover:text-rose-300 font-semibold underline">
                     Firebase Console &rarr;
                 </a>
+            </div>
+
+            <!-- DANGER ZONE TARGET LOCATOR BOX -->
+            <div class="mb-3 bg-rose-950/40 border border-rose-600/40 rounded-xl p-3 text-xs space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <span class="font-extrabold text-rose-400 flex items-center">
+                        <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping mr-1.5"></span>
+                        TARGET DANGER ZONE LOCATION:
+                    </span>
+                    <span id="targetGpsText" class="font-mono text-slate-300 text-[11px]">GPS: Fetching...</span>
+                </div>
+                <p id="targetAddressText" class="text-white font-bold text-xs leading-snug">
+                    Select an active alert to resolve exact physical street address, city, and landmarks...
+                </p>
+                <div class="pt-1 flex items-center justify-between">
+                    <span id="targetAccuracyText" class="text-[10px] text-slate-400">Accuracy: ±0.0m</span>
+                    <a id="targetGmapsLink" href="#" target="_blank" class="text-[11px] font-bold text-rose-400 hover:underline flex items-center space-x-1">
+                        <span>Open Nav in Google Maps</span> &rarr;
+                    </a>
+                </div>
             </div>
 
             <!-- Leaflet Map Element -->
@@ -193,30 +213,29 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Initialize Map with High-Resolution Labeled Street Map Tiles (Places, Roads, Cities)
+        // Initialize Leaflet Map with OpenStreetMap Standard Full Label Tiles (Cities, Places, Street Names)
         const map = L.map('map').setView([20.5937, 78.9629], 5);
 
-        const streetTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap &copy; CARTO',
-            subdomains: 'abcd',
+        const osmStandardTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
             maxZoom: 19
         }).addTo(map);
 
-        const esriStreetTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-            attribution: '&copy; Esri'
-        });
-
-        const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        const voyagerTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CARTO',
             subdomains: 'abcd',
             maxZoom: 19
         });
 
-        // Layer Switcher for Admin
+        const esriStreetTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; Esri'
+        });
+
+        // Layer Switcher
         L.control.layers({
-            "Full Street Map (Place Names & Labels)": streetTiles,
-            "Esri High-Detail Map": esriStreetTiles,
-            "Dark Night Map": darkTiles
+            "OpenStreetMap (Street Names & Places)": osmStandardTiles,
+            "CartoDB Labeled Voyager Map": voyagerTiles,
+            "Esri High-Detail Map": esriStreetTiles
         }, null, { position: 'topright' }).addTo(map);
 
         const markers = {};
@@ -288,9 +307,9 @@
                     </div>
 
                     <div class="flex items-center space-x-2 pt-1">
-                        <button onclick="inspectAlert('${alert.id}', '${alert.user_name}', '${alert.user_phone}', ${alert.latitude}, ${alert.longitude}, ${alert.risk_score || 95}, '${alert.battery_level || '90%'}')"
+                        <button onclick="inspectAlert('${alert.id}', '${alert.user_name}', '${alert.user_phone}', ${alert.latitude}, ${alert.longitude}, ${alert.risk_score || 95}, '${alert.battery_level || '90%'}', ${alert.accuracy || 4.5})"
                                 class="flex-1 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-md">
-                            View Stream &amp; Radar Pin
+                            View Stream &amp; Address Pin
                         </button>
                         <button onclick="disarmAlertRemote('${alert.id}')"
                                 class="px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-semibold text-xs border border-emerald-800 transition">
@@ -314,9 +333,9 @@
                 }
             });
 
-            // Inspect first active alert
+            // Inspect first active alert automatically
             const topAlert = activeAlerts[0];
-            inspectAlert(topAlert.id, topAlert.user_name, topAlert.user_phone, topAlert.latitude, topAlert.longitude, topAlert.risk_score || 95, topAlert.battery_level || '90%');
+            inspectAlert(topAlert.id, topAlert.user_name, topAlert.user_phone, topAlert.latitude, topAlert.longitude, topAlert.risk_score || 95, topAlert.battery_level || '90%', topAlert.accuracy || 4.5);
 
         }, err => {
             console.error("Firestore error:", err);
@@ -325,9 +344,30 @@
             document.getElementById('connectionBadge').innerText = "Blocked - Check Firestore Rules";
         });
 
-        function inspectAlert(id, name, phone, lat, lng, score, battery) {
+        // Address Resolver via Reverse Geocoding API
+        function resolvePhysicalAddress(lat, lng) {
+            document.getElementById('targetAddressText').innerText = "Resolving street name & physical address...";
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.display_name) {
+                        document.getElementById('targetAddressText').innerText = data.display_name;
+                    } else {
+                        document.getElementById('targetAddressText').innerText = `Location: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('targetAddressText').innerText = `GPS Location: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                });
+        }
+
+        function inspectAlert(id, name, phone, lat, lng, score, battery, accuracy) {
             document.getElementById('videoTargetUser').innerText = `Target: ${name || 'SafeZone User'} (${phone})`;
             document.getElementById('videoTargetGps').innerText = `GPS: ${lat ? lat.toFixed(5) : '--'}, ${lng ? lng.toFixed(5) : '--'}`;
+
+            document.getElementById('targetGpsText').innerText = `GPS: ${lat ? lat.toFixed(5) : '--'}, ${lng ? lng.toFixed(5) : '--'}`;
+            document.getElementById('targetAccuracyText').innerText = `Accuracy: ±${accuracy ? accuracy.toFixed(1) : '4.5'}m`;
+            document.getElementById('targetGmapsLink').href = `https://maps.google.com/?q=${lat},${lng}`;
 
             document.getElementById('aiScoreText').innerText = `${score} / 100`;
             document.getElementById('aiScoreBar').style.width = `${score}%`;
@@ -337,8 +377,9 @@
             document.getElementById('aiProtocolText').innerText = "DISPATCH EMERGENCY RESPONDERS: Contact local emergency services & trusted numbers immediately.";
 
             if (lat && lng) {
-                map.setView([lat, lng], 15);
+                map.setView([lat, lng], 16);
                 if (markers[id]) markers[id].openPopup();
+                resolvePhysicalAddress(lat, lng);
             }
         }
 
@@ -358,6 +399,9 @@
         function resetAiAnalysis() {
             document.getElementById('videoTargetUser').innerText = "Target: Standby";
             document.getElementById('videoTargetGps').innerText = "GPS: Standard Monitoring";
+            document.getElementById('targetGpsText').innerText = "GPS: Standby";
+            document.getElementById('targetAddressText').innerText = "No active emergency alerts. All monitored users are currently safe.";
+            document.getElementById('targetAccuracyText').innerText = "Accuracy: ±0.0m";
             document.getElementById('aiScoreText').innerText = "0 / 100";
             document.getElementById('aiScoreBar').style.width = "0%";
             document.getElementById('aiThreatBadge').innerText = "STANDBY";

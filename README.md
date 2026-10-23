@@ -1,6 +1,22 @@
 # SafeZone Sentinel • Personal Safety System & Command Dashboard
 
+[![Live Web Admin Portal](https://img.shields.io/badge/Live%20Portal-GitHub%20Pages-rose?style=for-the-badge&logo=github)](https://lokesh-comrade.github.io/SafeZone-Sentinel/web_admin/)
+[![Download Android APK](https://img.shields.io/badge/Download-Android%20APK-emerald?style=for-the-badge&logo=android)](https://github.com/lokesh-comrade/SafeZone-Sentinel/raw/main/app/build/outputs/apk/debug/app-debug.apk)
+
 **SafeZone Sentinel** is a production-ready personal safety ecosystem consisting of a **Native Android Safety Application** and an **AI Command Center Web Portal**. It provides automated emergency alert dispatching, live continuous GPS tracking, motion shake detection, direct 112 calling, and automatic multi-part SMS dispatch to trusted contacts with live Google Maps coordinates.
+
+---
+
+## 🔗 Quick Live Links
+
+- 🌐 **Live Web Admin Monitoring Portal**:
+  👉 **[https://lokesh-comrade.github.io/SafeZone-Sentinel/web_admin/](https://lokesh-comrade.github.io/SafeZone-Sentinel/web_admin/)**
+
+- 📱 **Direct Android APK Download (`app-debug.apk`)**:
+  👉 **[Download SafeZone APK (10 MB)](https://github.com/lokesh-comrade/SafeZone-Sentinel/raw/main/app/build/outputs/apk/debug/app-debug.apk)**
+
+- 💻 **GitHub Code Repository**:
+  👉 **[https://github.com/lokesh-comrade/SafeZone-Sentinel](https://github.com/lokesh-comrade/SafeZone-Sentinel)**
 
 ---
 
@@ -16,7 +32,7 @@
 - **Custom App Branding**: Redesigned vector launcher icons (`ic_launcher` / `ic_launcher_round`) with primary rose theme.
 
 ### 🌐 Admin Command Portal (`web_admin/index.html`)
-- **Interactive Labeled Map Radar**: High-resolution CartoDB & Esri maps rendering complete street names, landmarks, cities, and place names.
+- **Interactive Labeled Map Radar & Place Resolver**: High-resolution OpenStreetMap & Esri maps rendering complete street names, landmarks, cities, and place names with real-time reverse geocoding address resolution.
 - **Live Video Stream Player**: Real-time HUD overlay video monitor with camera stream status.
 - **AI Threat Risk Score Engine**: Visual score breakdown (0–100) assessing threat levels (`CRITICAL THREAT` / `HIGH ALERT`) and recommended emergency response protocols.
 - **Remote Alert Disarm Tool**: Allows authorized operators to acknowledge and disarm active mobile alerts remotely.
@@ -24,52 +40,33 @@
 
 ---
 
-## 📦 Mobile APK Download & Installation
+## 🚀 How to Host on GitHub Pages (Step-by-Step for `lokesh-comrade`)
 
-The debug APK is built and ready at:
-`app/build/outputs/apk/debug/app-debug.apk`
+Run these commands in PowerShell inside `C:\Users\admin\Desktop\SafeZone-final`:
 
-### Installation Steps on Mobile Device:
-1. Copy `app-debug.apk` to your Android phone (via USB, WhatsApp, or Google Drive).
-2. Tap `app-debug.apk` on your device to install (allow "Install from Unknown Sources" if prompted).
-3. Open **SafeZone**, complete the 3-step onboarding, and grant Location, SMS, Call, and Camera permissions.
-
----
-
-## 🚀 GitHub & GitHub Pages Deployment Guide
-
-### 1. Initialize Git Repository & Commit Code
-Open PowerShell or Git Bash in the project root directory (`SafeZone-final`):
-```bash
-git init
+```powershell
+# 1. Add all project files (including built APK and Web Admin Portal)
 git add .
-git commit -m "Initial commit: Complete SafeZone Sentinel Android App & Web Admin Portal"
-```
 
-### 2. Push to GitHub
-1. Go to [github.com/new](https://github.com/new) and create a new repository named `SafeZone-Sentinel`.
-2. Connect and push your code:
-```bash
-git remote add origin https://github.com/<YOUR_GITHUB_USERNAME>/SafeZone-Sentinel.git
+# 2. Commit files
+git commit -m "Add SafeZone Android APK, Web Admin Portal & Reverse Geocoding Map"
+
+# 3. Rename branch to main
 git branch -M main
+
+# 4. Connect remote origin
+git remote add origin https://github.com/lokesh-comrade/SafeZone-Sentinel.git
+
+# 5. Push code to GitHub
 git push -u origin main
 ```
 
-### 3. Enable Live Web Portal on GitHub Pages
-1. Go to your repository on GitHub: `https://github.com/<YOUR_GITHUB_USERNAME>/SafeZone-Sentinel`.
-2. Click **Settings** → **Pages** (in the left menu).
+### Enable GitHub Pages:
+1. Go to **[https://github.com/lokesh-comrade/SafeZone-Sentinel](https://github.com/lokesh-comrade/SafeZone-Sentinel)**.
+2. Click **Settings** ➔ **Pages** (in the left menu).
 3. Under **Build and deployment**:
-   - **Source**: Select `Deploy from a branch`.
-   - **Branch**: Choose `main` and directory `/ (root)` or `/web_admin`.
+   - **Source**: Select `Deploy from a branch`
+   - **Branch**: Choose `main` and directory `/ (root)`
    - Click **Save**.
-4. Your Admin Portal will be published live at:
-   `https://<YOUR_GITHUB_USERNAME>.github.io/SafeZone-Sentinel/web_admin/`
-
----
-
-## ⚙️ Tech Stack & Architecture
-
-- **Language & Framework**: Java 8, Android SDK (API 26 to 36), Material Components 3
-- **Location & Sensors**: Google Play Services Location (`21.2.0`), Accelerometer (`SensorEventListener`)
-- **Backend & Cloud Database**: Firebase Cloud Firestore (BOM `32.8.1`), Firebase Google Services Plugin (`4.4.1`)
-- **Web Portal**: HTML5, Tailwind CSS, Leaflet JS, CartoDB Voyager Map Tiles, Firebase Web JS SDK v10
+4. Your Web Admin Portal will be published live at:
+   👉 **[https://lokesh-comrade.github.io/SafeZone-Sentinel/web_admin/](https://lokesh-comrade.github.io/SafeZone-Sentinel/web_admin/)**
