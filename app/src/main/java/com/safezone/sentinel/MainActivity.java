@@ -7,6 +7,12 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Rect;
+import android.graphics.SurfaceTexture;
+import android.graphics.YuvImage;
+import android.hardware.Camera;
 import android.location.Location;
 import android.net.Uri;
 import android.os.BatteryManager;
@@ -17,6 +23,7 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
 import android.telephony.SmsManager;
+import android.util.Base64;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -40,12 +47,14 @@ import com.google.android.gms.location.Priority;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+@SuppressWarnings("deprecation")
 public class MainActivity extends AppCompatActivity {
 
     private static final String PREFS_NAME = "SafeZonePrefs";
@@ -67,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
     private Location currentLocation;
+    private Location previousLocation;
 
     private BroadcastReceiver shakeReceiver;
     private boolean isEmergencyActive = false;
@@ -74,6 +84,10 @@ public class MainActivity extends AppCompatActivity {
     private String userName;
     private String userPhone;
     private final List<String> contactNumbers = new ArrayList<>();
+
+    private Camera mCamera;
+    private String latestBase64CameraFrame = "";
+    private String lastTriggerSource = "MANUAL_TRIGGER";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -234,10 +248,11 @@ public class MainActivity extends AppCompatActivity {
             public void onLocationResult(@NonNull LocationResult locationResult) {
                 for (Location location : locationResult.getLocations()) {
                     if (location != null) {
+                        previousLocation = currentLocation;
                         currentLocation = location;
                         updateLocationUI(location);
                         if (isEmergencyActive) {
-                            updateFirestoreEmergencyRecord(location, "LOCATION_UPDATE");
+                            updateFirestoreEmergencyRecord(location, lastTriggerSource);
                         }
                     }
                 }
@@ -274,16 +289,102 @@ public class MainActivity extends AppCompatActivity {
 
     private void triggerEmergencyPipeline(String source) {
         isEmergencyActive = true;
+        lastTriggerSource = source;
 
         vibrateDevice();
         updateUIForEmergencyState(source);
         dispatchEmergencySmsAlerts();
         dialPrimaryContact();
+        startMobileRearCameraCapture();
 
         if (currentLocation != null) {
             updateFirestoreEmergencyRecord(currentLocation, source);
         } else {
-            Toast.makeText(this, "SOS Triggered! Fetching location & camera stream...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "SOS Triggered! Capturing live rear camera footage...", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void startMobileRearCameraCapture() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        try {
+            if (mCamera == null) {
+                int backCameraId = -1;
+                int numberOfCameras = Camera.getNumberOfCameras();
+                for (int i = 0; i < numberOfCameras; i++) {
+                    Camera.CameraInfo info = new Camera.CameraInfo();
+                    Camera.getCameraInfo(i, info);
+                    if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                        backCameraId = i;
+                        break;
+                    }
+                }
+
+                if (backCameraId != -1) {
+                    mCamera = Camera.open(backCameraId);
+                } else {
+                    mCamera = Camera.open();
+                }
+
+                SurfaceTexture dummySurface = new SurfaceTexture(10);
+                mCamera.setPreviewTexture(dummySurface);
+
+                mCamera.setPreviewCallback(new Camera.PreviewCallback() {
+                    private long lastFrameTime = 0;
+
+                    @Override
+                    public void onPreviewFrame(byte[] data, Camera camera) {
+                        long now = System.currentTimeMillis();
+                        if (now - lastFrameTime > 1500 && isEmergencyActive && currentLocation != null) { // 1.5 second frame rate
+                            lastFrameTime = now;
+                            processAndUploadCameraFrame(data, camera);
+                        }
+                    }
+                });
+
+                mCamera.startPreview();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void processAndUploadCameraFrame(byte[] data, Camera camera) {
+        try {
+            Camera.Parameters parameters = camera.getParameters();
+            Camera.Size size = parameters.getPreviewSize();
+
+            YuvImage yuvImage = new YuvImage(data, parameters.getPreviewFormat(), size.width, size.height, null);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            yuvImage.compressToJpeg(new Rect(0, 0, size.width, size.height), 40, out);
+            byte[] imageBytes = out.toByteArray();
+
+            Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+            if (bitmap != null) {
+                Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, 320, 240, false);
+                ByteArrayOutputStream scaledOut = new ByteArrayOutputStream();
+                scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 45, scaledOut);
+                latestBase64CameraFrame = "data:image/jpeg;base64," + Base64.encodeToString(scaledOut.toByteArray(), Base64.NO_WRAP);
+
+                updateFirestoreEmergencyRecord(currentLocation, lastTriggerSource);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void stopMobileRearCameraCapture() {
+        if (mCamera != null) {
+            try {
+                mCamera.setPreviewCallback(null);
+                mCamera.stopPreview();
+                mCamera.release();
+                mCamera = null;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -313,7 +414,7 @@ public class MainActivity extends AppCompatActivity {
         tvStatusTitle.setText("EMERGENCY SOS ACTIVE");
         tvStatusTitle.setTextColor(ContextCompat.getColor(this, R.color.danger_red));
 
-        tvWatchdogNotice.setText("Trigger Source: " + source + ". Camera video stream & location active!");
+        tvWatchdogNotice.setText("Trigger Source: " + source + ". Mobile Rear Camera Evidence Active!");
         tvWatchdogNotice.setTextColor(ContextCompat.getColor(this, R.color.danger_red));
 
         btnDisarmSos.setVisibility(View.VISIBLE);
@@ -377,11 +478,64 @@ public class MainActivity extends AppCompatActivity {
             Intent batteryStatus = registerReceiver(null, iFilter);
             int batteryLevel = batteryStatus != null ? batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) : 95;
 
-            int riskScore = "SHAKE_SOS_TRIGGER".equals(triggerSource) ? 96 : 88;
-            String threatLevel = riskScore >= 90 ? "CRITICAL THREAT" : "HIGH ALERT";
+            // --- HEURISTIC MULTI-FACTOR AI RISK ASSESSMENT SCORE (0 - 100) ---
+            // 1. Primary Trigger Weight (W_trigger: Up to 45 Points)
+            int wTrigger;
+            if ("SHAKE_SOS_TRIGGER".equals(triggerSource)) {
+                wTrigger = 45; // Involuntary rapid panic / struggle gesture
+            } else if ("SWIPE_SLIDER_TRIGGER".equals(triggerSource)) {
+                wTrigger = 35; // Intentional manual slider confirmation
+            } else {
+                wTrigger = 30;
+            }
 
-            // Universal high-compatibility video stream source URL
-            String videoStreamUrl = "https://vjs.zencdn.net/v/oceans.mp4";
+            // 2. Kinematic & Motion Intensity (W_motion: Up to 20 Points)
+            double speedKmH = 0;
+            if (location.hasSpeed()) {
+                speedKmH = location.getSpeed() * 3.6; // m/s to km/h
+            } else if (previousLocation != null) {
+                double distanceMeters = location.distanceTo(previousLocation);
+                double timeSeconds = (location.getTime() - previousLocation.getTime()) / 1000.0;
+                if (timeSeconds > 0) {
+                    speedKmH = (distanceMeters / timeSeconds) * 3.6;
+                }
+            }
+
+            int wMotion;
+            if (speedKmH > 30.0) {
+                wMotion = 20; // High-Speed Vehicular Transition / Abduction
+            } else if (speedKmH > 6.0 && speedKmH <= 18.0) {
+                wMotion = 15; // Running / Fleeing / Pursuit
+            } else if (speedKmH < 1.0) {
+                wMotion = 5; // Static / Pinned / Stationary
+            } else {
+                wMotion = 10;
+            }
+
+            // 3. Geofence Perimeter Deviation (W_spatial: Up to 20 Points)
+            // Default reference: 1000m deviation penalty threshold
+            int wSpatial = 10; // Default perimeter breach
+
+            // 4. Device Vulnerability & Battery Risk (W_vitals: Up to 15 Points)
+            int wVitals;
+            if (batteryLevel < 10) {
+                wVitals = 15; // Critical battery imminent loss
+            } else if (batteryLevel <= 20) {
+                wVitals = 8; // Low battery risk
+            } else {
+                wVitals = 0; // Normal battery
+            }
+
+            // Mathematical Aggregation
+            int riskScore = Math.min(100, wTrigger + wMotion + wSpatial + wVitals);
+            String threatLevel;
+            if (riskScore >= 85) {
+                threatLevel = "CRITICAL SOS THREAT";
+            } else if (riskScore >= 35) {
+                threatLevel = "ELEVATED THREAT";
+            } else {
+                threatLevel = "STANDBY";
+            }
 
             alertPayload.put("user_name", userName);
             alertPayload.put("user_phone", userPhone);
@@ -391,11 +545,17 @@ public class MainActivity extends AppCompatActivity {
             alertPayload.put("trigger_source", triggerSource);
             alertPayload.put("is_alert_active", true);
             alertPayload.put("battery_level", batteryLevel + "%");
+            alertPayload.put("battery_numeric", batteryLevel);
+            alertPayload.put("speed_kmh", String.format(Locale.getDefault(), "%.1f km/h", speedKmH));
+            alertPayload.put("w_trigger", wTrigger);
+            alertPayload.put("w_motion", wMotion);
+            alertPayload.put("w_spatial", wSpatial);
+            alertPayload.put("w_vitals", wVitals);
             alertPayload.put("risk_score", riskScore);
             alertPayload.put("threat_level", threatLevel);
             alertPayload.put("camera_active", true);
-            alertPayload.put("video_feed_status", "LIVE_STREAMING_ACTIVE");
-            alertPayload.put("video_stream_url", videoStreamUrl);
+            alertPayload.put("video_feed_status", "MOBILE_REAR_CAMERA_ACTIVE");
+            alertPayload.put("live_camera_frame", latestBase64CameraFrame);
             alertPayload.put("timestamp", FieldValue.serverTimestamp());
 
             String docId = userPhone.isEmpty() ? "unknown_user" : userPhone;
@@ -407,6 +567,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void disarmEmergencySos() {
         isEmergencyActive = false;
+        stopMobileRearCameraCapture();
+        latestBase64CameraFrame = "";
 
         llStatusCard.setBackgroundResource(R.drawable.bg_emerald_card);
         ivStatusIcon.setImageResource(android.R.drawable.ic_lock_lock);
@@ -448,6 +610,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void resetOnboarding() {
+        stopMobileRearCameraCapture();
         stopService(new Intent(this, SentinelService.class));
 
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
@@ -463,6 +626,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        stopMobileRearCameraCapture();
         if (fusedLocationClient != null && locationCallback != null) {
             fusedLocationClient.removeLocationUpdates(locationCallback);
         }
