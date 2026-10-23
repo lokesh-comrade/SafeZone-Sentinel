@@ -26,7 +26,7 @@
                     <h1 class="text-lg font-bold text-white tracking-tight">SafeZone Sentinel</h1>
                     <span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-rose-500/20 text-rose-400 border border-rose-500/30">COMMAND CENTER</span>
                 </div>
-                <p class="text-xs text-slate-400">Mobile Rear Camera Feed • Weighted AI Risk Engine • GPS Surveillance</p>
+                <p class="text-xs text-slate-400">Mobile Rear Camera Feed • AI Risk Analytics • Real-Time GPS Surveillance</p>
             </div>
         </div>
 
@@ -103,8 +103,8 @@
                 <span class="text-[11px] text-slate-400" id="videoTimestamp">00:00:00</span>
             </div>
 
-            <!-- Video Player & Image Stream Canvas Container -->
-            <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-800 shadow-inner group flex items-center justify-center">
+            <!-- Video Player & Image Stream Canvas Container with Generous Height -->
+            <div class="relative w-full h-[240px] min-h-[240px] bg-black rounded-xl overflow-hidden border border-slate-800 shadow-inner group flex items-center justify-center my-1">
 
                 <!-- Live Mobile Rear Camera Image Stream Frame -->
                 <img id="mobileLiveFrame" src="" class="w-full h-full object-cover hidden" alt="Mobile Rear Camera Stream" />
@@ -118,8 +118,8 @@
                 <!-- Video HUD Overlay -->
                 <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/50 p-3 flex flex-col justify-between pointer-events-none">
                     <div class="flex items-center justify-between">
-                        <span id="camTitleTag" class="bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-mono text-emerald-400 border border-emerald-500/30">
-                            MOBILE REAR CAM • LIVE EVIDENCE STREAM
+                        <span id="camTitleTag" class="bg-black/80 backdrop-blur px-2 py-1 rounded text-[10px] font-mono text-emerald-400 border border-emerald-500/30">
+                            MOBILE REAR CAM • LIVE FOOTAGE STREAM
                         </span>
                         <span class="bg-rose-600/90 backdrop-blur px-2 py-0.5 rounded text-[10px] font-bold text-white">
                             LIVE PHONE STREAM
@@ -135,14 +135,14 @@
             <!-- AI Weighted Risk Analysis Breakdown Model -->
             <div class="mt-3 flex-1 flex flex-col bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 space-y-2.5">
                 <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                    <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Weighted Threat Risk Heuristic Model</h3>
+                    <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">AI Threat Risk Assessment Engine</h3>
                     <span id="aiThreatBadge" class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-slate-800 text-slate-300">STANDBY</span>
                 </div>
 
                 <!-- Risk Score Bar -->
                 <div>
                     <div class="flex justify-between text-xs mb-1">
-                        <span class="text-slate-400 font-medium">Calculated Risk Score ($\min(100, \sum W)$)</span>
+                        <span class="text-slate-400 font-medium">Calculated AI Threat Score</span>
                         <span id="aiScoreText" class="font-bold text-amber-400">0 / 100</span>
                     </div>
                     <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
@@ -150,22 +150,22 @@
                     </div>
                 </div>
 
-                <!-- Dynamic 4-Factor Weighted Breakdown Matrix -->
+                <!-- Dynamic 4-Factor Weighted Breakdown Matrix without Raw Formulas -->
                 <div class="grid grid-cols-2 gap-2 text-[11px] pt-1">
                     <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
-                        <span class="text-slate-400 block text-[10px]">1. TRIGGER WEIGHT ($W_{\text{trigger}}$)</span>
+                        <span class="text-slate-400 block text-[10px]">1. TRIGGER SEVERITY</span>
                         <strong id="aiTriggerWeight" class="text-rose-400 block font-semibold">+0 Pts (Standby)</strong>
                     </div>
                     <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
-                        <span class="text-slate-400 block text-[10px]">2. KINEMATICS ($W_{\text{motion}}$)</span>
+                        <span class="text-slate-400 block text-[10px]">2. MOTION KINEMATICS</span>
                         <strong id="aiMotionWeight" class="text-amber-400 block font-semibold">+0 Pts (0.0 km/h)</strong>
                     </div>
                     <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
-                        <span class="text-slate-400 block text-[10px]">3. GEOFENCE ($W_{\text{spatial}}$)</span>
+                        <span class="text-slate-400 block text-[10px]">3. GEOFENCE PERIMETER</span>
                         <strong id="aiSpatialWeight" class="text-amber-400 block font-semibold">+0 Pts (Safe Zone)</strong>
                     </div>
                     <div class="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
-                        <span class="text-slate-400 block text-[10px]">4. VITALS ($W_{\text{vitals}}$)</span>
+                        <span class="text-slate-400 block text-[10px]">4. DEVICE VITALS</span>
                         <strong id="aiVitalsWeight" class="text-emerald-400 block font-semibold">+0 Pts (Battery)</strong>
                     </div>
                 </div>
