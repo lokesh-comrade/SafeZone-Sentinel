@@ -1,19 +1,19 @@
 # SafeZone Sentinel • Personal Safety System & Command Dashboard
 
 [![Live Web Admin Portal](https://img.shields.io/badge/Live%20Portal-GitHub%20Pages-rose?style=for-the-badge&logo=github)](https://lokesh-comrade.github.io/SafeZone-Sentinel/web_admin/)
-[![Download Android APK](https://img.shields.io/badge/Download-Android%20APK-emerald?style=for-the-badge&logo=android)](https://github.com/lokesh-comrade/SafeZone-Sentinel/raw/main/app/build/outputs/apk/debug/app-debug.apk)
+[![Download Android APK](https://img.shields.io/badge/Download-Android%20APK-emerald?style=for-the-badge&logo=android)](https://lokesh-comrade.github.io/SafeZone-Sentinel/web_admin/app-debug.apk)
 
 **SafeZone Sentinel** is a production-ready personal safety ecosystem consisting of a **Native Android Safety Application** and an **AI Command Center Web Portal**. It provides automated emergency alert dispatching, live continuous GPS tracking, motion shake detection, direct 112 calling, and automatic multi-part SMS dispatch to trusted contacts with live Google Maps coordinates.
 
 ---
 
-## 🔗 Quick Live Links
+## 🔗 Live Working Download & Web Portal Links
+
+- 📲 **Direct Mobile APK Download (`SafeZone-debug.apk`)**:
+  👉 **[Download SafeZone APK (Direct Link)](https://lokesh-comrade.github.io/SafeZone-Sentinel/web_admin/app-debug.apk)**
 
 - 🌐 **Live Web Admin Monitoring Portal**:
   👉 **[https://lokesh-comrade.github.io/SafeZone-Sentinel/web_admin/](https://lokesh-comrade.github.io/SafeZone-Sentinel/web_admin/)**
-
-- 📱 **Direct Android APK Download (`app-debug.apk`)**:
-  👉 **[Download SafeZone APK (10 MB)](https://github.com/lokesh-comrade/SafeZone-Sentinel/raw/main/app/build/outputs/apk/debug/app-debug.apk)**
 
 - 💻 **GitHub Code Repository**:
   👉 **[https://github.com/lokesh-comrade/SafeZone-Sentinel](https://github.com/lokesh-comrade/SafeZone-Sentinel)**
@@ -40,16 +40,16 @@
 
 ---
 
-## 🚀 How to Host on GitHub Pages (Step-by-Step for `lokesh-comrade`)
+## 🚀 Commands to Push Updates to GitHub
 
 Run these commands in PowerShell inside `C:\Users\admin\Desktop\SafeZone-final`:
 
 ```powershell
-# 1. Add all project files (including built APK and Web Admin Portal)
+# 1. Add all tracked files (including the APK inside /apk and /web_admin)
 git add .
 
 # 2. Commit files
-git commit -m "Add SafeZone Android APK, Web Admin Portal & Reverse Geocoding Map"
+git commit -m "Fix APK download paths for GitHub Pages and repository"
 
 # 3. Rename branch to main
 git branch -M main
